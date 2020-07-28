@@ -21,7 +21,7 @@ var monitored_string = []string{}
 func parseIsolCpus() error {
 	var err error
 
-	f, err := os.Open("/tmp/cmdline")
+	f, err := os.Open("/proc/cmdline")
 	if err != nil {
 		return err
 	}
