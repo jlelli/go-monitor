@@ -27,8 +27,6 @@ func parseIsolCpus() error {
 	}
 	defer f.Close()
 
-	reg := regexp.MustCompile(`isolcpus=([\d\-?\d+?\,?]+)`)
-
 	r := bufio.NewReader(f)
 	line, err := r.ReadString('\n')
 	if err != nil {
@@ -36,9 +34,11 @@ func parseIsolCpus() error {
 		return err
 	}
 	
+	reg := regexp.MustCompile(`\s(isolcpus|rcu_nocbs)=([\d+\-?\d+?\,?]+)`)
 	if reg.MatchString(line) {
 		match := reg.FindStringSubmatch(line)
-		for _, c := range strings.Split(match[1], ",") {
+		//fmt.Println(match)
+		for _, c := range strings.Split(match[2], ",") {
 			cs := strings.Split(c, "-")
 			//fmt.Printf("%s %d\n", c, len(cs))
 			if len(cs) > 1 {
