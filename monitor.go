@@ -10,13 +10,48 @@ import (
 	"strings"
 	term "github.com/inancgumus/screen"
 	"time"
+	"unsafe"
+	unix "golang.org/x/sys/unix"
 )
+
+type sched_attr struct {
+	size 		uint32
+	sched_policy 	uint32
+	sched_flags 	uint64
+	sched_nice	int32
+	sched_priority	uint32
+	sched_runtime 	uint64
+	sched_deadline	uint64
+	sched_period	uint64
+}
 
 var online_cpus = []int{}
 var isolated_cpus = []int{}
 var isolated_string = []string{}
 var monitored_pids = make(map[int]string)
 var monitored_string = []string{}
+
+func makeDeadline(pid int) error {
+	attr := sched_attr {}
+	attr.size = uint32(unsafe.Sizeof(attr))
+	attr.sched_policy = 6
+	attr.sched_runtime = 20000000
+	attr.sched_deadline = 1000000000
+	attr.sched_period = 1000000000
+
+	fmt.Println(attr)
+
+	_, _, errno := unix.Syscall(unix.SYS_SCHED_SETATTR,
+				    uintptr(pid),
+				    uintptr(unsafe.Pointer(&attr)),
+				    0)
+	
+	if errno != 0 {
+		return os.NewSyscallError("setattr", fmt.Errorf("%d", int(errno)))
+	}
+
+	return nil
+}
 
 func parseIsolCpus() error {
 	var err error
@@ -200,7 +235,11 @@ func readSchedDebug() error {
 				fmt.Printf("comm=%s pid=%d cpu=%d status=%s -- WILL STARVE!\n",
 					match[1], pid, cpu, status)
 				monitored_pids[pid] = status
-				//XXX change pid scheduling class
+				err = makeDeadline(pid)
+				if err != nil {
+					fmt.Printf("error %s making pid %d DEADLINE", err, pid)
+					return err
+				}
 				fmt.Printf("comm=%s pid=%d cpu=%d status=%s -- CLASS CHANGED\n",
 					match[1], pid, cpu, status)
 			} else {
@@ -235,6 +274,7 @@ func checkMonitored() {
 }
 
 func main() {
+	var err error
 	//nProc()
 	parseIsolCpus()
 
@@ -246,7 +286,11 @@ func main() {
 		fmt.Printf("----   monitoring cpus = %s   ----\n", strings.Join(isolated_string, ","))
 		fmt.Printf("----   monitored  pids = %s   ----\n", strings.Join(monitored_string, ","))
 		fmt.Println()
-		readSchedDebug()
+		err = readSchedDebug()
+		if err != nil {
+			fmt.Println()
+			return
+		}
 		checkMonitored()
 
 		time.Sleep(time.Second * 3)
