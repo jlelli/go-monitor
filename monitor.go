@@ -15,7 +15,7 @@ import (
 var online_cpus = []int{}
 var isolated_cpus = []int{}
 var isolated_string = []string{}
-var monitored_pids = []int{}
+var monitored_pids = make(map[int]string)
 var monitored_string = []string{}
 
 func parseIsolCpus() error {
@@ -102,13 +102,9 @@ func isIsolated(cpu int) bool {
 }
 
 func isMonitored(pid int) bool {
-	for _, item := range monitored_pids {
-		if item == pid {
-			return true
-		}
-	}
+	_, ok := monitored_pids[pid]
 
-	return false
+	return ok
 }
 
 func findProcCpu(pid int) (int, error) {
@@ -203,7 +199,7 @@ func readSchedDebug() error {
 			if isIsolated(cpu) && !isMonitored(pid) {
 				fmt.Printf("comm=%s pid=%d cpu=%d status=%s -- WILL STARVE!\n",
 					match[1], pid, cpu, status)
-				monitored_pids = append(monitored_pids, pid)
+				monitored_pids[pid] = status
 				//XXX change pid scheduling class
 				fmt.Printf("comm=%s pid=%d cpu=%d status=%s -- CLASS CHANGED\n",
 					match[1], pid, cpu, status)
@@ -216,7 +212,7 @@ func readSchedDebug() error {
 	}
 
 	monitored_string = nil
-	for _, pid := range monitored_pids {
+	for pid, _ := range monitored_pids {
 		monitored_string = append(monitored_string, strconv.Itoa(pid))
 	}
 
