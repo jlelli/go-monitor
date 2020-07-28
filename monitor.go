@@ -219,6 +219,21 @@ func readSchedDebug() error {
 	return nil
 }
 
+func checkMonitored() {
+	for pid, _ := range monitored_pids {
+		s, err := findProcStatus(pid)
+		if err != nil {
+			fmt.Printf("Couldn't find proc fs for pid %d -- removing from monitored\n", pid)
+			delete(monitored_pids, pid)
+		}
+
+		if s != "R" {
+			fmt.Printf("Status change for pid %d (%s) -- removing from monitored\n", pid, s)
+			delete(monitored_pids, pid)
+		}
+	}
+}
+
 func main() {
 	//nProc()
 	parseIsolCpus()
@@ -232,7 +247,8 @@ func main() {
 		fmt.Printf("----   monitoring pids = %s   ----\n", strings.Join(monitored_string, ","))
 		fmt.Println()
 		readSchedDebug()
+		checkMonitored()
 
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * 3)
 	}
 }
