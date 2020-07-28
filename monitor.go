@@ -243,8 +243,8 @@ func main() {
 		term.MoveTopLeft()
 
 		fmt.Println("----   go monitor (Ctrl+c to exit)  ----")
-		fmt.Printf("----   monitoring isolated cpus = %s   ----\n", strings.Join(isolated_string, ","))
-		fmt.Printf("----   monitoring pids = %s   ----\n", strings.Join(monitored_string, ","))
+		fmt.Printf("----   monitoring cpus = %s   ----\n", strings.Join(isolated_string, ","))
+		fmt.Printf("----   monitored  pids = %s   ----\n", strings.Join(monitored_string, ","))
 		fmt.Println()
 		readSchedDebug()
 		checkMonitored()
